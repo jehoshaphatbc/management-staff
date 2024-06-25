@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -84,18 +85,21 @@ class UserController extends Controller
 
             $user = User::create($this->fillData($request, $unit, Hash::make($request->password)));
 
+            $rolesToAssign = [];
+
             foreach ($request->roles as $role) {
-                if(isset($role['__isNew__'])) {
+                if (isset($role['__isNew__'])) {
                     $newRole = Role::create([
                         'name' => $role['label'],
                     ]);
 
-                    $user->assignRole($newRole);
+                    $rolesToAssign[] = $newRole->name;
                 } else {
-                    $user->assignRole($role['label']);
+                    $rolesToAssign[] = $role['label'];
                 }
             }
 
+            $user->syncRoles($rolesToAssign);
 
             DB::commit();
 
@@ -114,9 +118,28 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'name' => 'required',
+            'username' => ['required', Rule::unique(User::class)->ignore($request->id)],
+            'unit' => 'required',
+            'roles' => 'required',
+        ]);
+
         DB::beginTransaction();
         try {
             $user = User::find($id);
+
+            $unit = null;
+
+            if(isset($request->unit['__isNew__'])) {
+                $newUnit = Unit::create([
+                    'name' => $request->unit['label'],
+                ]);
+
+                $unit = $newUnit->id;
+            } else {
+                $unit = $request->unit['value'];
+            }
 
             $password = $user?->password;
 
@@ -124,7 +147,23 @@ class UserController extends Controller
                 $password = Hash::make($request->password);
             }
 
-            // $user->update($this->fillData($request, $password));
+            $user->update($this->fillData($request, $unit, $password));
+
+            $rolesToAssign = [];
+
+            foreach ($request->roles as $role) {
+                if (isset($role['__isNew__'])) {
+                    $newRole = Role::create([
+                        'name' => $role['label'],
+                    ]);
+
+                    $rolesToAssign[] = $newRole->name;
+                } else {
+                    $rolesToAssign[] = $role['label'];
+                }
+            }
+
+            $user->syncRoles($rolesToAssign);
 
             DB::commit();
 

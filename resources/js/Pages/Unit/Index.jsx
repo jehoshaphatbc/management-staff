@@ -4,6 +4,10 @@ import { Head, useForm, router } from '@inertiajs/react';
 
 import { toast } from 'react-toastify';
 
+import 'datatables.net-dt/css/dataTables.dataTables.css';
+import $ from 'jquery';
+import 'datatables.net';
+
 import ModalDialog from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
@@ -25,6 +29,13 @@ export default function Index({ auth, units }) {
         name: '',
     });
 
+    useEffect(() => {
+        // Inisialisasi DataTables setelah komponen dimuat
+        $(document).ready(function() {
+            $('#unitsTable').DataTable();
+        });
+    }, []);
+
     // Open form modal
     const openFormModal = () => {
         setTypeForm('add');
@@ -42,6 +53,30 @@ export default function Index({ auth, units }) {
         setData(user)
         setShowFormModal(true);
     }
+
+    // open modal delete
+    const deleteUser = (user) => {
+        setDetail(user)
+        setShowConfirmationDelete(true);
+    }
+
+    // Submit delete
+    const submitDelete = (e) => {
+        e.preventDefault();
+
+        destroy(route('units.delete', detail.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Berhasil menghapus data unit!');
+                closeConfirmationModal();
+            }
+        });
+    }
+
+    // Close confirmation delete modal
+    const closeConfirmationModal = () => {
+        setShowConfirmationDelete(false);
+    };
 
     // Close confirmation delete modal
     const closeFormModal = () => {
@@ -66,18 +101,18 @@ export default function Index({ auth, units }) {
                 onSuccess: () => {
                     setShowFormModal(false);
                     reset();
-                    toast.success('Berhasil menambahkan unit!');
+                    toast.success('Berhasil menambahkan data unit!');
                 }
             });
         } else {
-            // post(route('dashboard.users.update', data.id), {
-            //     preserveScroll: true,
-            //     onSuccess: () => {
-            //         setShowFormModal(false);
-            //         reset();
-            //         toast.success('Succes update user!');
-            //     }
-            // });
+            post(route('units.update', data.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowFormModal(false);
+                    reset();
+                    toast.success('Berhasil mengubah data unit!');
+                }
+            });
         }
     }
 
@@ -91,7 +126,31 @@ export default function Index({ auth, units }) {
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <PrimaryButton onClick={openFormModal}>Tambah Unit</PrimaryButton>
+
+                    <div className="mt-10">
+                        <table id="unitsTable" className="display">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th className="w-44"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {units.data.map((unit, index) => (
+                                    <tr key={index}>
+                                        <td>{unit.name}</td>
+                                        <td className="flex justify-between">
+                                            <PrimaryButton onClick={() => editUser(unit)}>Edit</PrimaryButton>
+                                            <SecondaryButton onClick={() => deleteUser(unit)}>Delete</SecondaryButton>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+
             </div>
 
             {/* Form Modal */}
@@ -123,6 +182,18 @@ export default function Index({ auth, units }) {
                             <PrimaryButton type="submit" disabled={processing}>Save</PrimaryButton>
                             <SecondaryButton type="button" onClick={closeFormModal}>Close</SecondaryButton>
                         </div>
+                    </div>
+                </form>
+            </ModalDialog>
+
+            {/* Confirmation Delete */}
+            <ModalDialog maxWidth="md" show={showConfirmationDelete} onClose={closeConfirmationModal}>
+                <form onSubmit={submitDelete} className="p-6">
+                    <h2 className="text-lg font-medium text-gray-900">Apakah yakin untuk menghapus data unit ini?</h2>
+
+                    <div className="mt-6 gap-4 flex justify-end">
+                        <PrimaryButton type="submit" disabled={processing}>Delete!</PrimaryButton>
+                        <SecondaryButton type="button" onClick={closeConfirmationModal}>Cancel</SecondaryButton>
                     </div>
                 </form>
             </ModalDialog>

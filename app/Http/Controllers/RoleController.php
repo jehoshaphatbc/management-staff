@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\RoleCollection;
 use App\Http\Resources\UserCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ class RoleController extends Controller
         $roles = $roles->paginate($request->paginate ?? 10);
 
         return Inertia::render('Role/Index', [
-            'roles' => new UserCollection($roles),
+            'roles' => new RoleCollection($roles),
         ]);
     }
 
@@ -39,9 +40,54 @@ class RoleController extends Controller
 
         DB::beginTransaction();
         try {
-            $unit = Role::create([
+            $role = Role::create([
                 'name' => $request->name,
             ]);
+
+            DB::commit();
+
+        } catch(\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $role = Role::find($id);
+
+            $role->update([
+                'name' => $request->name
+            ]);
+
+            DB::commit();
+
+        } catch(\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function delete(string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $role = Role::find($id);
+            $role->delete();
 
             DB::commit();
 

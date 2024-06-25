@@ -4,6 +4,10 @@ import { Head, useForm, router } from '@inertiajs/react';
 
 import { toast } from 'react-toastify';
 
+import 'datatables.net-dt/css/dataTables.dataTables.css';
+import $ from 'jquery';
+import 'datatables.net';
+
 import ModalDialog from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
@@ -25,6 +29,13 @@ export default function Index({ auth, roles }) {
         name: '',
     });
 
+    useEffect(() => {
+        // Inisialisasi DataTables setelah komponen dimuat
+        $(document).ready(function() {
+            $('#rolesTable').DataTable();
+        });
+    }, []);
+
     // Open form modal
     const openFormModal = () => {
         setTypeForm('add');
@@ -34,7 +45,7 @@ export default function Index({ auth, roles }) {
     }
 
     // open edit form
-    const editUser = (user) => {
+    const editRole = (user) => {
         setTypeForm('edit');
         user.password = '';
         setShowLabel('Ubah Jabatan');
@@ -66,20 +77,44 @@ export default function Index({ auth, roles }) {
                 onSuccess: () => {
                     setShowFormModal(false);
                     reset();
-                    toast.success('Berhasil menambahkan jabatan!');
+                    toast.success('Berhasil menambahkan data jabatan!');
                 }
             });
         } else {
-            // post(route('dashboard.users.update', data.id), {
-            //     preserveScroll: true,
-            //     onSuccess: () => {
-            //         setShowFormModal(false);
-            //         reset();
-            //         toast.success('Succes update user!');
-            //     }
-            // });
+            post(route('roles.update', data.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowFormModal(false);
+                    reset();
+                    toast.success('Berhasil mengubah data jabatan!');
+                }
+            });
         }
     }
+
+    // open modal delete
+    const deleteRole = (user) => {
+        setDetail(user)
+        setShowConfirmationDelete(true);
+    }
+
+    // Submit delete
+    const submitDelete = (e) => {
+        e.preventDefault();
+
+        destroy(route('roles.delete', detail.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Berhasil menghapus data role!');
+                closeConfirmationModal();
+            }
+        });
+    }
+
+    // Close confirmation delete modal
+    const closeConfirmationModal = () => {
+        setShowConfirmationDelete(false);
+    };
 
     return (
         <AuthenticatedLayout
@@ -91,6 +126,28 @@ export default function Index({ auth, roles }) {
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <PrimaryButton onClick={openFormModal}>Tambah Jabatan</PrimaryButton>
+
+                    <div className="mt-10">
+                        <table id="rolesTable" className="display">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th className="w-44"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {roles.data.map((role, index) => (
+                                    <tr key={index}>
+                                        <td>{role.name}</td>
+                                        <td className="flex justify-between">
+                                            <PrimaryButton onClick={() => editRole(role)}>Edit</PrimaryButton>
+                                            <SecondaryButton onClick={() => deleteRole(role)}>Delete</SecondaryButton>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -123,6 +180,18 @@ export default function Index({ auth, roles }) {
                             <PrimaryButton type="submit" disabled={processing}>Save</PrimaryButton>
                             <SecondaryButton type="button" onClick={closeFormModal}>Close</SecondaryButton>
                         </div>
+                    </div>
+                </form>
+            </ModalDialog>
+
+            {/* Confirmation Delete */}
+            <ModalDialog maxWidth="md" show={showConfirmationDelete} onClose={closeConfirmationModal}>
+                <form onSubmit={submitDelete} className="p-6">
+                    <h2 className="text-lg font-medium text-gray-900">Apakah yakin untuk menghapus data jabatan ini?</h2>
+
+                    <div className="mt-6 gap-4 flex justify-end">
+                        <PrimaryButton type="submit" disabled={processing}>Delete!</PrimaryButton>
+                        <SecondaryButton type="button" onClick={closeConfirmationModal}>Cancel</SecondaryButton>
                     </div>
                 </form>
             </ModalDialog>

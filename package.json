@@ -20,6 +20,9 @@
         "vite": "^5.0"
     },
     "dependencies": {
+        "@heroicons/react": "^2.1.4",
+        "datatables.net": "^2.0.8",
+        "datatables.net-dt": "^2.0.8",
         "react-select": "^5.8.0",
         "react-toastify": "^10.0.5"
     }
